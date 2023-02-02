@@ -11,23 +11,20 @@ module ActiveJob
 
     class ResqueAdapter
 
-      class << self
+      def wrapper(job)
+        job.lock ? JobWrapperWithLock : JobWrapper
+      end
 
-        def wrapper(job)
-          job.lock ? JobWrapperWithLock : JobWrapper
-        end
+      def enqueue(job) #:nodoc:
+        Resque.enqueue_to job.queue_name, wrapper(job), job.serialize
+      end
 
-        def enqueue(job) #:nodoc:
-          Resque.enqueue_to job.queue_name, wrapper(job), job.serialize
+      def enqueue_at(job, timestamp) #:nodoc:
+        unless Resque.respond_to?(:enqueue_at_with_queue)
+          raise NotImplementedError, "To be able to schedule jobs with Resque you need the " \
+            "resque-scheduler gem. Please add it to your Gemfile and run bundle install"
         end
-
-        def enqueue_at(job, timestamp) #:nodoc:
-          unless Resque.respond_to?(:enqueue_at_with_queue)
-            raise NotImplementedError, "To be able to schedule jobs with Resque you need the " \
-              "resque-scheduler gem. Please add it to your Gemfile and run bundle install"
-          end
-          Resque.enqueue_at_with_queue job.queue_name, timestamp, wrapper(job), job.serialize
-        end
+        Resque.enqueue_at_with_queue job.queue_name, timestamp, wrapper(job), job.serialize
       end
 
       class JobWrapperWithLock < JobWrapper
