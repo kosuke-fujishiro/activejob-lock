@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'active_support'
 require 'active_job/base'
 require 'activejob/lock/version'
@@ -9,7 +11,6 @@ module ActiveJob
     extend ActiveSupport::Concern
 
     module ClassMethods
-
       def lock_with(lock = nil, &block)
         if block_given?
           self.lock = block
@@ -25,14 +26,24 @@ module ActiveJob
 
     def apply_lock
       suffix = if lock.is_a?(Proc)
-        deserialize_arguments_if_needed
-        lock.call(*arguments)
-      else
-        lock
-      end
+                 deserialize_arguments_if_needed
+                 args = lock.call(*arguments)
+                 args.is_a?(Array) ? args[0] : args
+               else
+                 lock
+               end
       "#{self.class.name}-#{suffix}"
+    end
+
+    def apply_lock_timeout
+      if lock.is_a?(Proc)
+        deserialize_arguments_if_needed
+        args = lock.call(*arguments)
+        args.is_a?(Array) ? args[1] : 3600
+      else
+        3600
+      end
     end
   end
   Base.include(Lock)
 end
-

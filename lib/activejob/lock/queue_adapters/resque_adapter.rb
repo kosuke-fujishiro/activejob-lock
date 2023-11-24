@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'active_job/queue_adapters/resque_adapter'
 
 begin
@@ -8,18 +10,16 @@ end
 
 module ActiveJob
   module QueueAdapters
-
     class ResqueAdapter
-
       def wrapper(job)
         job.lock ? JobWrapperWithLock : JobWrapper
       end
 
-      def enqueue(job) #:nodoc:
+      def enqueue(job) # :nodoc:
         Resque.enqueue_to job.queue_name, wrapper(job), job.serialize
       end
 
-      def enqueue_at(job, timestamp) #:nodoc:
+      def enqueue_at(job, timestamp) # :nodoc:
         unless Resque.respond_to?(:enqueue_at_with_queue)
           raise NotImplementedError, "To be able to schedule jobs with Resque you need the " \
             "resque-scheduler gem. Please add it to your Gemfile and run bundle install"
@@ -32,8 +32,13 @@ module ActiveJob
 
         def self.lock(job_data)
           job = Base.deserialize(job_data)
+          @lock_timeout = job.apply_lock_timeout
 
           job.apply_lock
+        end
+
+        def self.lock_timeout
+          @lock_timeout || 3600
         end
       end
     end
