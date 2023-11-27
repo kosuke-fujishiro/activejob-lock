@@ -28,7 +28,7 @@ module ActiveJob
       suffix = if lock.is_a?(Proc)
                  deserialize_arguments_if_needed
                  args = lock.call(*arguments)
-                 args.is_a?(Array) ? args[0] : args
+                 args.is_a?(Hash) ? args[:lock_key_suffix] : args
                else
                  lock
                end
@@ -39,7 +39,7 @@ module ActiveJob
       if lock.is_a?(Proc)
         deserialize_arguments_if_needed
         args = lock.call(*arguments)
-        args.is_a?(Array) ? args[1] : 3600
+        args.is_a?(Hash) ? args[:lock_timeout] : 3600
       else
         3600
       end
